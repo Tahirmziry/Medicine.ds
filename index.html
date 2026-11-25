@@ -160,6 +160,16 @@ main{padding-top:0}
 .site-footer nav{display:flex;justify-content:center;flex-wrap:wrap;gap:9px 18px;margin-bottom:8px}
 .site-footer a{color:#67e8f9;text-decoration:none}.site-footer a:hover{text-decoration:underline}
 .site-footer .footer-note{color:#8390a8;font-size:11px}
+
+/* Quiet in-page advertising slot */
+.ad-slot{margin:18px 0 22px;padding:15px 16px;border:1px solid rgba(103,232,249,.22);border-radius:18px;background:linear-gradient(135deg,rgba(19,31,58,.92),rgba(31,18,54,.92));box-shadow:0 8px 24px rgba(0,0,0,.16);text-align:center}
+.ad-slot-label{display:block;margin-bottom:9px;color:#91a4c5;font-size:10px;font-weight:800;letter-spacing:1.4px}
+.ad-slot-inner{min-height:74px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px}
+.ad-slot-title{color:#dbeafe;font-size:14px;font-weight:800}
+.ad-slot-copy{color:#9fb0ca;font-size:12px;line-height:1.6}
+.ad-slot a{color:#67e8f9;text-decoration:none;font-weight:800}
+.ad-slot a:hover{text-decoration:underline}
+@media(max-width:480px){.ad-slot{margin:15px 0 18px;padding:13px;border-radius:15px}.ad-slot-inner{min-height:68px}}
 </style>
 </head>
 <body>
@@ -193,6 +203,13 @@ main{padding-top:0}
   <h2 class="section-title">Profit &amp; markup percentages</h2>
   <p class="section-sub">Profit percentage is calculated on purchase price: (selling price − purchase price) ÷ purchase price × 100. These are gross margins before expenses and taxes.</p>
   <div id="breakRows"></div>
+ </section>
+ <section class="ad-slot" aria-label="Advertisement">
+  <span class="ad-slot-label">ADVERTISEMENT · إعلان</span>
+  <div class="ad-slot-inner">
+   <div class="ad-slot-title">مساحة إعلانية للشركات الطبية</div>
+   <div class="ad-slot-copy">إعلان هادئ داخل الصفحة — لا يغطي الحاسبة ولا يعرض نوافذ منبثقة</div>
+  </div>
  </section>
  <section class="history hidden" id="historyPanel">
   <div class="history-head"><h2 class="section-title">Recent calculations</h2><button class="clear-history" id="clearHistory">Clear</button></div>
