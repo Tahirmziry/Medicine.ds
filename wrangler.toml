@@ -1,0 +1,8 @@
+name = "medicine-ds-counter"
+main = "worker.js"
+compatibility_date = "2026-11-25"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "medicine-ds-counter"
+database_id = "REPLACE-WITH-D1-DATABASE-ID"

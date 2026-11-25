@@ -1,0 +1,44 @@
+MEDICINE D.S. — عدّاد الزوار باستخدام Cloudflare Workers + D1
+
+مهم:
+- الموقع الأساسي يبقى على GitHub Pages.
+- Worker.js هو خدمة العدّاد الخلفية، وD1 قاعدة البيانات.
+- لا يمكن تشغيل العدّاد فعلياً قبل إنشاء D1 ونشر Worker وإضافة رابط Worker في index.html.
+
+الخطوات:
+1) في Cloudflare افتح Workers & Pages ثم D1 SQL Database وأنشئ قاعدة باسم medicine-ds-counter.
+2) افتح قاعدة البيانات > Console والصق محتوى schema.sql ثم نفّذه.
+3) أنشئ Worker باسم medicine-ds-counter، والصق محتوى worker.js وانشره.
+4) من إعدادات Worker > Bindings أضف D1 Database binding:
+   Variable name: DB
+   Database: medicine-ds-counter
+5) انسخ رابط Worker الذي ينتهي عادةً بـ workers.dev.
+6) افتح index.html وابحث عن:
+   https://REPLACE-WITH-YOUR-WORKER.workers.dev
+   واستبدله برابط Worker الحقيقي.
+7) ارفع الملفات المعدلة إلى جذر مستودع GitHub Pages.
+
+ما الذي يعرضه العداد:
+- الإجمالي: عدد المتصفحات/الأجهزة المميزة التي زارت الموقع منذ تشغيل الخدمة.
+- اليوم/الأسبوع/الشهر: عدد المتصفحات المميزة التي زارت خلال تلك الفترة.
+- نفس المتصفح يُحسب مرة واحدة في اليوم للفترات اليومية.
+- حذف بيانات المتصفح أو استخدام متصفح/جهاز آخر قد يُنشئ زائراً جديداً.
+- لا يجمع الاسم أو البريد أو أي بيانات طبية.
+
+الخصوصية:
+العدّاد يستخدم معرّفاً عشوائياً محفوظاً في localStorage. راجع سياسة الخصوصية بالموقع لتوضيح استخدام إحصائيات الزيارة.
+
+لم يتم نشر Worker أو إنشاء قاعدة D1 تلقائياً؛ يلزم تنفيذ الخطوات أعلاه من حساب Cloudflare الخاص بك.
+
+
+تأكيد إعدادات Google المضافة في index.html:
+- Google Analytics 4: G-DDPR68YJWX
+- Google Tag Manager: GTM-M4BJCKR9
+- تم تضمين Google tag وGTM في الصفحة الرئيسية بالفعل. لا تضف نسخة ثانية من الأكواد.
+
+حالة عدّاد الزوار:
+- الواجهة وواجهات API موجودة في index.html وworker.js.
+- يجب إنشاء قاعدة D1 وتنفيذ schema.sql وربطها بالـ Worker باسم DB.
+- يجب نشر worker.js كخدمة العدّاد ثم وضع عنوانه الحقيقي في متغير API_BASE داخل index.html بدل REPLACE-WITH-YOUR-WORKER.
+- رابط الموقع الحالي flat-field-2fc7.tahirhassan49.workers.dev هو رابط الموقع الظاهر للمستخدم، ولا نفترض أنه رابط خدمة العدّاد؛ لا تضعه في API_BASE إلا إذا نشرت worker.js عليه وربطت قاعدة D1.
+- بعد تعديل API_BASE، ارفع index.html وباقي ملفات الموقع إلى جذر GitHub Pages.

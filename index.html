@@ -39,7 +39,7 @@ h1{font-size:28px;letter-spacing:-.5px;margin:0 0 3px;font-weight:850}
 .subtitle{font-size:14px;color:#aeb9ce;margin:0}
 .visitor-counter{display:inline-flex;align-items:center;gap:9px;margin-top:15px;padding:9px 13px;border:1px solid #60a5fa55;border-radius:16px;background:#0b1730aa;box-shadow:0 0 18px #2563eb22;color:#dbeafe;font-size:12px;font-weight:800}
 .visitor-counter strong{font-size:17px;color:#67e8f9;font-variant-numeric:tabular-nums}
-.visitor-dot{width:8px;height:8px;border-radius:50%;background:#34d399;box-shadow:0 0 9px #34d399;flex:0 0 auto}
+.visitor-dot{width:8px;height:8px;border-radius:50%;background:#34d399;box-shadow:0 0 9px #34d399;flex:0 0 auto}\n.visitor-stats{display:flex;flex-wrap:wrap;justify-content:center;gap:10px 18px;margin:0 auto 18px;color:#bfdbfe;font-size:12px;font-weight:700}.visitor-stats b{color:#67e8f9;font-variant-numeric:tabular-nums}
 main{padding:0 14px 42px;margin-top:-23px}
 .cards{display:grid;gap:14px}
 .price-card{position:relative;overflow:hidden;border-radius:29px;padding:22px 23px 20px;color:white;box-shadow:0 12px 24px #25354d1a;min-height:154px}
@@ -247,6 +247,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
  </section>
  <div class="admin">⚙ Administrator</div>
  <div class="visitor-counter" aria-live="polite"><span class="visitor-dot"></span><span>إجمالي زوار البرنامج</span><strong id="visitorTotal">—</strong></div>
+ <div id="visitorStats" class="visitor-stats" aria-live="polite">جارٍ تحميل إحصائيات الزوار…</div>
 </main>
 
 <footer class="site-footer">
@@ -382,11 +383,56 @@ tbody.addEventListener("click",e=>{
 });
 renderTable();
 
-// GitHub Pages is static hosting and cannot run the former Netlify visitor-count function.
-// Keep the visitor counter in-page; connect a supported counter backend after deployment.
+// MEDICINE D.S. visitor analytics (Cloudflare Worker + D1)
+// After deploying worker.js, replace the URL below with your Worker URL.
 (function(){
-  const counter=document.getElementById("visitorTotal");
-  if(counter) counter.textContent="—";
+  const API_BASE = "https://REPLACE-WITH-YOUR-WORKER.workers.dev";
+  const counter = document.getElementById("visitorTotal");
+  if (!counter) return;
+
+  // Stable anonymous browser identifier; no name, email, or medical data is collected.
+  function getVisitorId(){
+    const key = "medicine_ds_visitor_id_v1";
+    let id = localStorage.getItem(key);
+    if (!id) {
+      id = (window.crypto && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : "mds-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2);
+      localStorage.setItem(key, id);
+    }
+    return id;
+  }
+
+  const visitorId = getVisitorId();
+  const statsEl = document.getElementById("visitorStats");
+
+  function showStats(data){
+    counter.textContent = Number(data.total || 0).toLocaleString("en-US");
+    if (statsEl) {
+      statsEl.innerHTML =
+        '<span>اليوم: <b>' + Number(data.today || 0).toLocaleString("en-US") + '</b></span>' +
+        '<span>هذا الأسبوع: <b>' + Number(data.week || 0).toLocaleString("en-US") + '</b></span>' +
+        '<span>هذا الشهر: <b>' + Number(data.month || 0).toLocaleString("en-US") + '</b></span>';
+    }
+  }
+
+  async function updateVisitorStats(){
+    try {
+      await fetch(API_BASE + "/api/visit", {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({visitorId})
+      });
+      const response = await fetch(API_BASE + "/api/stats", {cache:"no-store"});
+      if (!response.ok) throw new Error("Stats request failed");
+      showStats(await response.json());
+    } catch (error) {
+      counter.textContent = "—";
+      if (statsEl) statsEl.textContent = "فعّل خدمة Cloudflare لعرض الإحصائيات";
+      console.warn("MEDICINE D.S. visitor counter:", error);
+    }
+  }
+  updateVisitorStats();
 })();
 </script>
 </body></html>
