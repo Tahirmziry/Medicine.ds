@@ -5,4 +5,4 @@ compatibility_date = "2026-11-25"
 [[d1_databases]]
 binding = "DB"
 database_name = "medicine-ds-counter"
-database_id = "REPLACE-WITH-D1-DATABASE-ID"
+database_id = "9a578cac-fb1b-4076-84dc-76ee205fec9e"
