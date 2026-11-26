@@ -1,21 +1,27 @@
-MEDICINE D.S. - إصلاح عدّاد الزوار باستخدام Cloudflare D1
+MEDICINE D.S. — KMCA PRICE
+إصلاح الشعار وإظهار عدّاد الزوار
 
-هذه النسخة تستخدم قاعدة D1 الموجودة باسم medicine-counter-db، ولا تحذف قاعدة البيانات أو سجلاتها.
+المحتويات:
+- index.html في المجلد الرئيسي: ارفعه إلى جذر مستودع GitHub Pages واستبدل الملف القديم.
+- medicine-ds-logo.png و medicine-ds-icon.png في المجلد الرئيسي: ارفعهما إلى جذر المستودع.
+- worker.js: استبدل به ملف Worker الحالي في مستودع GitHub المرتبط بـ Cloudflare.
+- public/: نسخة مطابقة من ملفات الموقع لمن يستخدم إعداد Cloudflare Assets الذي يشير إلى ./public.
 
-مهم قبل النشر:
-1) افتح Cloudflare Dashboard ثم Storage & databases > D1 SQL Database.
-2) افتح medicine-counter-db وانسخ Database ID.
-3) تم وضع Database ID الذي أرسلته داخل wrangler.jsonc، ولا تحتاج إلى استبداله.
-4) ارفع ملفات هذا المشروع إلى مستودع GitHub المرتبط بـ Cloudflare، أو انشره باستخدام Wrangler.
-5) تأكد أن Worker اسمه medicine-counter-api وأن D1 binding اسمه DB.
+الإصلاحات:
+1) إصلاح مسارات الشعار والأيقونة لتعمل على GitHub Pages داخل مسار المستودع.
+2) نقل عدّاد إجمالي الزوار إلى أعلى الصفحة أسفل اسم MEDICINE DRUG STORE.
+3) ربط العداد بعنوان Cloudflare Worker: https://medicine-counter-api.tahirhassan49.workers.dev/api/visitor-count.
+4) قراءة total_visits أو total من استجابة API.
+5) الاحتفاظ بمعرّف المتصفح محلياً حتى لا يتكرر احتسابه عند تحديث الصفحة.
+6) إتاحة GET على عنوان Worker الرئيسي لإظهار JSON يحوي total_visits، إضافة إلى مسار /api/visitor-count.
 
-العدّاد:
-- يسجل معرّف المتصفح مرة واحدة فقط.
-- يستخدم visitor_id كمفتاح أساسي لمنع التكرار حتى مع الطلبات المتزامنة.
-- ينشئ جدول visitor_records تلقائياً إذا لم يكن موجوداً.
-- لا يحذف أو يصفر أي جدول أو قاعدة بيانات موجودة.
-- يدعم GET لقراءة العدد وPOST لتسجيل الزائر ثم قراءة العدد.
+خطوات GitHub:
+1) افتح مستودع Medicine.ds.
+2) استبدل index.html الموجود في جذر المستودع بملف index.html الموجود هنا في الجذر.
+3) ارفع medicine-ds-logo.png و medicine-ds-icon.png إلى الجذر، ووافق على استبدال الملفات إذا طُلب ذلك.
+4) استبدل worker.js في الجذر بهذا الملف، ثم احفظ التغييرات (Commit changes).
+5) لا تحذف ولا تنشئ قاعدة D1 جديدة. أبقِ إعداد wrangler.toml الحالي واسم ربط D1 كما هو (DB).
+6) انتظر اكتمال نشر GitHub Pages وCloudflare Worker، ثم افتح الموقع وتحقق من ظهور الشعار والعدد أعلى الصفحة.
 
-ملاحظة: يحتسب المتصفح/بياناته المحلية كزائر واحد. إذا مسح المستخدم بيانات Safari أو استخدم متصفحاً آخر/التصفح الخاص فقد يُحتسب مرة أخرى.
-
-لم يتم تغيير تصميم الحاسبة أو بيانات جدول الأسعار.
+اختبار العداد: افتح https://medicine-counter-api.tahirhassan49.workers.dev؛ يجب أن يعرض JSON فيه success و total_visits.
+هذا التحديث لا يصفر العداد ولا يحذف سجلات D1.

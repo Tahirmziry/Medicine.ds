@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#10172d">
-<link rel="icon" type="image/png" href="/medicine-ds-icon.png">
-<link rel="apple-touch-icon" href="/medicine-ds-icon.png">
+<link rel="icon" type="image/png" href="medicine-ds-icon.png">
+<link rel="apple-touch-icon" href="medicine-ds-icon.png">
 <title>MEDICINE D.S. — KMCA Price Calculator</title>
 <style>
 :root{--navy:#10091f;--blue:#8b5cf6;--orange:#ec4899;--green:#22d3ee;--ink:#f5efff;--muted:#b7a9cc;--bg:#0b0715}
@@ -141,7 +141,7 @@ header{padding:14px 14px 30px;background:linear-gradient(120deg,#100b25 0%,#1713
 .header-inner{display:flex;justify-content:center;align-items:center;max-width:720px;margin:auto;min-height:92px}
 .brand-logo{display:block;width:min(210px,58vw);height:88px;max-height:88px;object-fit:contain;margin:0 auto;filter:drop-shadow(0 5px 16px #0008)}
 main{padding-top:0}
-.visitor-counter{margin:18px 0 14px;justify-content:center;width:fit-content;max-width:100%}
+.visitor-counter{display:flex;margin:12px auto 0;justify-content:center;width:fit-content;max-width:100%;min-height:38px}
 
 .intro-brand-copy{position:relative;z-index:3;text-align:center;margin-top:16px;opacity:0;transform:translateY(16px);animation:brandCopyIn .85s ease-out 1s forwards;text-shadow:0 0 18px #168bff66}
 .intro-title{font-size:clamp(20px,5vw,32px);font-weight:900;letter-spacing:.09em;color:#f4faff}
@@ -158,7 +158,7 @@ main{padding-top:0}
 </style>
 </head>
 <body>
-<div class="cinematic-intro" id="cinematicIntro" aria-label="Medicine Drug Store"><div class="intro-orbit orbit-one"></div><div class="intro-orbit orbit-two"></div><img src="/medicine-ds-logo.png" alt="Medicine Drug Store" class="intro-logo"><div class="intro-brand-copy"><div class="intro-title">MEDICINE DRUG STORE</div><div class="intro-subtitle">KMCA-PRICE</div></div><div class="intro-line"></div></div><header><div class="header-inner"><img class="brand-logo" src="/medicine-ds-logo.png" alt="Medicine Drug Store logo"><div class="header-brand-copy"><div class="header-brand-title">MEDICINE DRUG STORE</div><div class="header-brand-subtitle">KMCA-PRICE</div></div></div></header>
+<div class="cinematic-intro" id="cinematicIntro" aria-label="Medicine Drug Store"><div class="intro-orbit orbit-one"></div><div class="intro-orbit orbit-two"></div><img src="medicine-ds-logo.png" alt="Medicine Drug Store" class="intro-logo"><div class="intro-brand-copy"><div class="intro-title">MEDICINE DRUG STORE</div><div class="intro-subtitle">KMCA-PRICE</div></div><div class="intro-line"></div></div><header><div class="header-inner"><img class="brand-logo" src="medicine-ds-logo.png" alt="Medicine Drug Store logo"><div class="header-brand-copy"><div class="header-brand-title">MEDICINE DRUG STORE</div><div class="header-brand-subtitle">KMCA-PRICE</div></div></div><div class="visitor-counter" aria-live="polite"><span class="visitor-dot"></span><span>إجمالي زوار البرنامج</span><strong id="visitorTotal">جارٍ التحميل…</strong></div></header>
 <main>
  <div class="cards">
   <section class="price-card company">
@@ -200,7 +200,6 @@ main{padding-top:0}
   <div class="table-wrap"><table><thead><tr><th>COMPANY</th><th>WAREHOUSE</th><th>PHARMACY</th></tr></thead><tbody id="priceRows"></tbody></table></div>
   <div class="table-count" id="tableCount">400 official records</div>
  </section>
- <div class="visitor-counter" aria-live="polite"><span class="visitor-dot"></span><span>إجمالي زوار البرنامج</span><strong id="visitorTotal">—</strong></div>
  <div class="admin">⚙ Administrator</div>
 </main>
 <script>
@@ -323,22 +322,33 @@ tbody.addEventListener("click",e=>{
 });
 renderTable();
 
-// Count each browser/device once using a persistent Cloudflare Durable Object.
+// Count each browser/device once using Cloudflare Worker + D1.
 (async function loadVisitorCount(){
   const counter=document.getElementById("visitorTotal");
+  if(!counter)return;
+  const API_BASE="https://medicine-counter-api.tahirhassan49.workers.dev";
+  const showCount=data=>{
+    const value=Number(data?.total_visits ?? data?.total ?? data?.count);
+    if(Number.isFinite(value)&&value>=0){counter.textContent=value.toLocaleString("en-US");return true;}
+    return false;
+  };
   try{
     let visitorId=localStorage.getItem("medicine_ds_visitor_id");
     if(!visitorId){
       visitorId=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():"v-"+Date.now().toString(36)+Math.random().toString(36).slice(2);
       localStorage.setItem("medicine_ds_visitor_id",visitorId);
     }
-    const response=await fetch("/api/visitor-count",{
-      method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({visitorId})
+    const response=await fetch(API_BASE+"/api/visitor-count",{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({visitorId}),cache:"no-store"
     });
-    if(!response.ok) throw new Error("Counter unavailable");
+    if(!response.ok)throw new Error("Visitor API returned "+response.status);
     const data=await response.json();
-    if(Number.isFinite(data.total)) counter.textContent=data.total.toLocaleString("en-US");
-  }catch(error){counter.textContent="—";console.info("Cloudflare visitor counter is temporarily unavailable.",error);}
+    if(!showCount(data))throw new Error("Visitor API response did not include a count");
+  }catch(error){
+    counter.textContent="غير متاح";
+    console.info("Cloudflare visitor counter is temporarily unavailable.",error);
+  }
 })();
 </script>
 </body></html>
