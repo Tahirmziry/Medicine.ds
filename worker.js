@@ -1,64 +1,78 @@
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "https://tahirmziry.github.io",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
-  "Cache-Control": "no-store"
+const JSON_HEADERS = {
+  "Content-Type": "application/json; charset=utf-8",
+  "Cache-Control": "no-store, no-cache, must-revalidate",
 };
 
 function json(data, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" }
-  });
+  return new Response(JSON.stringify(data), { status, headers: JSON_HEADERS });
 }
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    if (request.method === "OPTIONS") {
-      return new Response(null, { status: 204, headers: corsHeaders });
-    }
 
-    if (url.pathname === "/api/visit" && request.method === "POST") {
+    if (url.pathname === "/api/visitor-count") {
+      if (request.method === "OPTIONS") {
+        return new Response(null, {
+          status: 204,
+          headers: {
+            "Access-Control-Allow-Origin": url.origin,
+            "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type",
+            "Access-Control-Max-Age": "86400",
+          },
+        });
+      }
+
+      if (request.method === "GET") {
+        try {
+          await env.DB.prepare(
+            "CREATE TABLE IF NOT EXISTS visitor_records (visitor_id TEXT PRIMARY KEY, first_seen_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"
+          ).run();
+          const row = await env.DB.prepare(
+            "SELECT COUNT(*) AS total FROM visitor_records"
+          ).first();
+          return json({ total: Number(row?.total || 0) });
+        } catch (error) {
+          console.error("Visitor count read failed:", error);
+          return json({ error: "Visitor counter database is not configured" }, 500);
+        }
+      }
+
+      if (request.method !== "POST") {
+        return json({ error: "Method Not Allowed" }, 405);
+      }
+
       let body;
-      try { body = await request.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
-      const visitorId = String(body.visitorId || "");
-      if (!/^[a-zA-Z0-9-]{8,80}$/.test(visitorId)) return json({ error: "Invalid visitor ID" }, 400);
+      try {
+        body = await request.json();
+      } catch {
+        return json({ error: "Invalid JSON" }, 400);
+      }
 
-      const now = new Date();
-      const day = now.toISOString().slice(0, 10);
-      await env.DB.prepare(
-        "INSERT INTO visitors (visitor_id, first_seen, last_seen) VALUES (?, ?, ?) " +
-        "ON CONFLICT(visitor_id) DO UPDATE SET last_seen = excluded.last_seen"
-      ).bind(visitorId, now.toISOString(), now.toISOString()).run();
+      const visitorId = String(body?.visitorId || "");
+      if (!/^[a-zA-Z0-9-]{8,100}$/.test(visitorId)) {
+        return json({ error: "Invalid visitor ID" }, 400);
+      }
 
-      await env.DB.prepare(
-        "INSERT OR IGNORE INTO visits (visitor_id, visit_date) VALUES (?, ?)"
-      ).bind(visitorId, day).run();
-
-      return json({ ok: true });
+      try {
+        // The primary key makes the count idempotent, even for simultaneous requests.
+        await env.DB.prepare(
+          "CREATE TABLE IF NOT EXISTS visitor_records (visitor_id TEXT PRIMARY KEY, first_seen_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)"
+        ).run();
+        await env.DB.prepare(
+          "INSERT OR IGNORE INTO visitor_records (visitor_id) VALUES (?)"
+        ).bind(visitorId).run();
+        const row = await env.DB.prepare(
+          "SELECT COUNT(*) AS total FROM visitor_records"
+        ).first();
+        return json({ total: Number(row?.total || 0) });
+      } catch (error) {
+        console.error("Visitor counter write failed:", error);
+        return json({ error: "Visitor counter database is not configured" }, 500);
+      }
     }
 
-    if (url.pathname === "/api/stats" && request.method === "GET") {
-      const total = await env.DB.prepare("SELECT COUNT(*) AS n FROM visitors").first();
-      const today = await env.DB.prepare(
-        "SELECT COUNT(DISTINCT visitor_id) AS n FROM visits WHERE visit_date = date('now')"
-      ).first();
-      const week = await env.DB.prepare(
-        "SELECT COUNT(DISTINCT visitor_id) AS n FROM visits WHERE visit_date >= date('now', '-6 days')"
-      ).first();
-      const month = await env.DB.prepare(
-        "SELECT COUNT(DISTINCT visitor_id) AS n FROM visits WHERE visit_date >= date('now', 'start of month')"
-      ).first();
-
-      return json({
-        total: total?.n || 0,
-        today: today?.n || 0,
-        week: week?.n || 0,
-        month: month?.n || 0
-      });
-    }
-
-    return json({ error: "Not found" }, 404);
-  }
+    return env.ASSETS.fetch(request);
+  },
 };

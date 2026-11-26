@@ -1,0 +1,16 @@
+{
+  "name": "medicine-counter-api",
+  "main": "worker.js",
+  "compatibility_date": "2026-11-25",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "medicine-counter-db",
+      "database_id": "f408f21d-cd1a-45e2-805e-5802f8898051"
+    }
+  ]
+}
