@@ -155,10 +155,19 @@ main{padding-top:0}
 @media(max-width:360px){.header-inner{gap:9px}.brand-logo{width:70px;height:70px}.header-brand-title{font-size:14px}.header-brand-subtitle{font-size:12px}}
 @media(prefers-reduced-motion:reduce){.cinematic-intro *{animation-duration:.01ms!important;animation-iteration-count:1!important}}
 
+
+/* Visitor counter footer */
+.visitor-footer{max-width:720px;margin:26px auto 0;padding:0 14px 28px}
+.visitor-footer-inner{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:20px 16px;border:1px solid #60a5fa55;border-radius:22px;background:linear-gradient(135deg,#101b3a,#17134b 55%,#092e59);box-shadow:0 10px 30px #0004;text-align:center;color:#dbeafe}
+.visitor-footer-title{font-size:13px;font-weight:800;letter-spacing:.02em}
+.visitor-footer-count{font-size:30px;line-height:1.1;font-weight:900;color:#67e8f9;font-variant-numeric:tabular-nums;text-shadow:0 0 18px #22d3ee55}
+.visitor-footer-note{font-size:11px;color:#9fb3d5}
+.visitor-footer .visitor-dot{width:9px;height:9px}
+
 </style>
 </head>
 <body>
-<div class="cinematic-intro" id="cinematicIntro" aria-label="Medicine Drug Store"><div class="intro-orbit orbit-one"></div><div class="intro-orbit orbit-two"></div><img src="medicine-ds-logo.png" alt="Medicine Drug Store" class="intro-logo"><div class="intro-brand-copy"><div class="intro-title">MEDICINE DRUG STORE</div><div class="intro-subtitle">KMCA-PRICE</div></div><div class="intro-line"></div></div><header><div class="header-inner"><img class="brand-logo" src="medicine-ds-logo.png" alt="Medicine Drug Store logo"><div class="header-brand-copy"><div class="header-brand-title">MEDICINE DRUG STORE</div><div class="header-brand-subtitle">KMCA-PRICE</div></div></div><div class="visitor-counter" aria-live="polite"><span class="visitor-dot"></span><span>إجمالي زوار البرنامج</span><strong id="visitorTotal">جارٍ التحميل…</strong></div></header>
+<div class="cinematic-intro" id="cinematicIntro" aria-label="Medicine Drug Store"><div class="intro-orbit orbit-one"></div><div class="intro-orbit orbit-two"></div><img src="medicine-ds-logo.png" alt="Medicine Drug Store" class="intro-logo"><div class="intro-brand-copy"><div class="intro-title">MEDICINE DRUG STORE</div><div class="intro-subtitle">KMCA-PRICE</div></div><div class="intro-line"></div></div><header><div class="header-inner"><img class="brand-logo" src="medicine-ds-logo.png" alt="Medicine Drug Store logo"><div class="header-brand-copy"><div class="header-brand-title">MEDICINE DRUG STORE</div><div class="header-brand-subtitle">KMCA-PRICE</div></div></div></header>
 <main>
  <div class="cards">
   <section class="price-card company">
@@ -202,6 +211,14 @@ main{padding-top:0}
  </section>
  <div class="admin">⚙ Administrator</div>
 </main>
+<footer class="visitor-footer" aria-label="إجمالي زوار البرنامج">
+  <div class="visitor-footer-inner">
+    <span class="visitor-dot" aria-hidden="true"></span>
+    <div class="visitor-footer-title">إجمالي زوار البرنامج</div>
+    <strong class="visitor-footer-count" id="visitorTotal" aria-live="polite">جارٍ التحميل…</strong>
+    <div class="visitor-footer-note">MEDICINE DRUG STORE · KMCA-PRICE</div>
+  </div>
+</footer>
 <script>
 (function(){const intro=document.getElementById("cinematicIntro");if(!intro)return;const finish=()=>{intro.classList.add("is-hidden");setTimeout(()=>intro.remove(),750);};window.addEventListener("load",()=>setTimeout(finish,2600),{once:true});setTimeout(finish,4200);})();
 
@@ -322,33 +339,54 @@ tbody.addEventListener("click",e=>{
 });
 renderTable();
 
-// Count each browser/device once using Cloudflare Worker + D1.
+// Visitor counter: read the public total first, then register this browser once.
 (async function loadVisitorCount(){
   const counter=document.getElementById("visitorTotal");
   if(!counter)return;
   const API_BASE="https://medicine-counter-api.tahirhassan49.workers.dev";
-  const showCount=data=>{
+  const setCount=data=>{
     const value=Number(data?.total_visits ?? data?.total ?? data?.count);
-    if(Number.isFinite(value)&&value>=0){counter.textContent=value.toLocaleString("en-US");return true;}
+    if(Number.isFinite(value)&&value>=0){
+      counter.textContent=value.toLocaleString("en-US");
+      return true;
+    }
     return false;
   };
-  try{
-    let visitorId=localStorage.getItem("medicine_ds_visitor_id");
-    if(!visitorId){
-      visitorId=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():"v-"+Date.now().toString(36)+Math.random().toString(36).slice(2);
-      localStorage.setItem("medicine_ds_visitor_id",visitorId);
-    }
-    const response=await fetch(API_BASE+"/api/visitor-count",{
-      method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({visitorId}),cache:"no-store"
-    });
-    if(!response.ok)throw new Error("Visitor API returned "+response.status);
+  const readCount=async()=>{
+    const response=await fetch(API_BASE+"/",{method:"GET",cache:"no-store",headers:{"Accept":"application/json"}});
+    if(!response.ok)throw new Error("Counter read failed: "+response.status);
     const data=await response.json();
-    if(!showCount(data))throw new Error("Visitor API response did not include a count");
+    if(!setCount(data))throw new Error("Counter response has no valid total");
+    return data;
+  };
+  try{
+    await readCount();
+    let visitorId=null;
+    try{visitorId=localStorage.getItem("medicine_ds_visitor_id");}catch(e){}
+    if(!visitorId){
+      visitorId=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():
+        "v-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,14);
+      try{localStorage.setItem("medicine_ds_visitor_id",visitorId);}catch(e){}
+    }
+    try{
+      const response=await fetch(API_BASE+"/api/visitor-count",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","Accept":"application/json"},
+        body:JSON.stringify({visitorId}),
+        cache:"no-store"
+      });
+      if(!response.ok)throw new Error("Visitor registration failed: "+response.status);
+      const data=await response.json();
+      setCount(data);
+    }catch(registerError){
+      console.info("Visit registration was unsuccessful; showing the latest readable total.",registerError);
+      await readCount();
+    }
   }catch(error){
     counter.textContent="غير متاح";
     console.info("Cloudflare visitor counter is temporarily unavailable.",error);
   }
+  window.setInterval(()=>readCount().catch(error=>console.info("Visitor total refresh failed.",error)),60000);
 })();
 </script>
 </body></html>
